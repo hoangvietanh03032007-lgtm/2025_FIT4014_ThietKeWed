@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Portfolio Hoàng Việt Anh - Học sinh đam mê công nghệ, game và thể thao">
+<meta name="keywords" content="Hoang Viet Anh, portfolio, học sinh, game, bóng đá, công nghệ">
+<title>Portfolio | Hoàng Việt Anh</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<style>
+/* ===== GLOBAL STYLES ===== */
+* {margin:0; padding:0; box-sizing:border-box; font-family: 'Poppins', sans-serif;}
+body {background:#0e0e0e; color:#fff; scroll-behavior:smooth;}
+a {text-decoration:none; color:inherit;}
+section {padding:100px 50px;}
+
+/* ===== HERO ===== */
+.hero {
+  position:relative; height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
+}
+.hero::before {
+  content:''; position:absolute; top:0; left:0; width:100%; height:100%;
+  background:radial-gradient(circle,#ff4d6d,#1b1b2f);
+  animation:gradient 10s ease infinite alternate;
+  z-index:-1;
+}
+@keyframes gradient {
+  0%{background:radial-gradient(circle,#ff4d6d,#1b1b2f);}
+  50%{background:radial-gradient(circle,#4d79ff,#0e0e0e);}
+  100%{background:radial-gradient(circle,#ff4d6d,#1b1b2f);}
+}
+.hero h1 {font-size:3rem; margin-bottom:20px;}
+.hero h1 span {color:#4d79ff;}
+.hero p {font-size:1.5rem; margin-bottom:30px;}
+.hero .btn {padding:12px 25px; border:2px solid #fff; border-radius:50px; transition:0.3s; color:#fff;}
+.hero .btn:hover {background:#4d79ff; border-color:#4d79ff; cursor:pointer;}
+
+/* ===== SECTIONS ===== */
+.heading {text-align:center; font-size:2.5rem; margin-bottom:50px;}
+.heading span {color:#4d79ff;}
+
+/* ===== ABOUT ===== */
+.about {display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:50px;}
+.about .card {background:#1b1b2f; padding:30px; border-radius:15px; flex:1 1 400px; max-width:500px; box-shadow:0 0 20px rgba(0,0,0,0.5); transition:0.3s;}
+.about .card:hover {transform:translateY(-10px);}
+.about .card i {font-size:80px; margin-bottom:20px; color:#4d79ff;}
+.about .card h3 {margin-bottom:10px;}
+.about .card p {line-height:1.6;}
+
+/* ===== HOBBIES ===== */
+.hobbies {display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:30px; text-align:center;}
+.hobbies .hobby {background:#1b1b2f; padding:20px; border-radius:15px; transition:0.3s;}
+.hobbies .hobby:hover {transform:scale(1.1); box-shadow:0 0 20px #4d79ff;}
+.hobbies .hobby i {font-size:50px; margin-bottom:15px; color:#ff4d6d;}
+.hobbies .hobby p {font-size:1.1rem;}
+
+/* ===== INTERESTS / PROJECTS ===== */
+.interests {display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:30px;}
+.interests .interest {background:#1b1b2f; border-radius:15px; overflow:hidden; transition:0.5s; transform-style: preserve-3d;}
+.interests .interest:hover {transform:rotateY(10deg) scale(1.05);}
+.interests .interest i {font-size:50px; margin:20px 0; color:#4d79ff; display:block; text-align:center;}
+.interests .interest p {padding:0 20px 20px; text-align:center;}
+
+/* ===== CONTACT ===== */
+.contact {display:flex; flex-wrap:wrap; justify-content:center; gap:50px;}
+.contact .contact-card {background:#1b1b2f; padding:30px; border-radius:15px; text-align:center; flex:1 1 300px; transition:0.3s;}
+.contact .contact-card:hover {transform:translateY(-10px); box-shadow:0 0 20px #4d79ff;}
+.contact .contact-card i {font-size:50px; margin-bottom:15px; color:#ff4d6d;}
+.contact .contact-card p {margin-bottom:10px;}
+.contact .contact-card a {color:#4d79ff; transition:0.3s;}
+.contact .contact-card a:hover {text-decoration:underline;}
+
+/* ===== FOOTER ===== */
+footer {text-align:center; padding:30px; background:#111;}
+footer p {color:#888;}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .about {flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <h1>Hoàng Việt Anh <span>| Học sinh</span></h1>
+    <p>Tôi yêu thích <span id="typing"></span></p>
+    <button class="btn" onclick="document.getElementById('contact').scrollIntoView()">Liên hệ ngay</button>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <h2 class="heading"><span>Thông tin</span> cá nhân</h2>
+  <div class="card">
+    <i class="fas fa-user-graduate"></i>
+    <h3>Học sinh</h3>
+    <p>Email: hoangvietanh03032007@gmail.com</p>
+    <p>Điện thoại: 0353456833</p>
+    <p>Địa chỉ: Tổ dân phố Thư Đôi-Phường Ninh Xá-Tỉnh Bắc Ninh</p>
+    <p>Facebook: <a href="https://www.facebook.com/HoangVietAnh" target="_blank">Hoang Viet Anh</a></p>
+    <p>TikTok: <a href="https://www.tiktok.com/@hva037" target="_blank">@hva037</a></p>
+  </div>
+</section>
+
+<!-- HOBBIES -->
+<section class="hobbies" id="hobbies">
+  <h2 class="heading"><span>Sở thích</span> của tôi</h2>
+  <div class="hobby"><i class="fas fa-gamepad"></i><p>Chơi game</p></div>
+  <div class="hobby"><i class="fas fa-futbol"></i><p>Đá bóng</p></div>
+  <div class="hobby"><i class="fas fa-desktop"></i><p>Công nghệ</p></div>
+  <div class="hobby"><i class="fas fa-laptop-code"></i><p>Lập trình</p></div>
+</section>
+
+<!-- INTERESTS -->
+<section class="interests" id="interests">
+  <h2 class="heading"><span>Quan tâm</span> & dự án</h2>
+  <div class="interest"><i class="fas fa-code"></i><p>Lập trình web</p></div>
+  <div class="interest"><i class="fas fa-mobile-alt"></i><p>Ứng dụng di động</p></div>
+  <div class="interest"><i class="fas fa-brain"></i><p>Trí tuệ nhân tạo</p></div>
+  <div class="interest"><i class="fas fa-robot"></i><p>Robot & tự động hóa</p></div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <h2 class="heading"><span>Liên hệ</span> với tôi</h2>
+  <div class="contact-card">
+    <i class="fas fa-envelope"></i>
+    <p>Email</p>
+    <a href="mailto:hoangvietanh03032007@gmail.com">hoangvietanh03032007@gmail.com</a>
+  </div>
+  <div class="contact-card">
+    <i class="fas fa-phone-alt"></i>
+    <p>Điện thoại</p>
+    <a href="tel:0353456833">0353456833</a>
+  </div>
+  <div class="contact-card">
+    <i class="fab fa-facebook"></i>
+    <p>Facebook</p>
+    <a href="https://www.facebook.com/HoangVietAnh" target="_blank">Hoang Viet Anh</a>
+  </div>
+  <div class="contact-card">
+    <i class="fab fa-tiktok"></i>
+    <p>TikTok</p>
+    <a href="https://www.tiktok.com/@hva037" target="_blank">@hva037</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 Hoàng Việt Anh. All rights reserved.</p>
+</footer>
+
+<!-- JS -->
+<script>
+// Typing effect
+const texts = ["Game", "Đá bóng", "Công nghệ", "Lập trình"];
+let count = 0, index = 0, currentText = '', letter = '';
+(function type(){
+  if(count === texts.length) count=0;
+  currentText = texts[count];
+  letter = currentText.slice(0, ++index);
+  document.getElementById('typing').textContent = letter;
+  if(letter.length === currentText.length){ count++; index=0; setTimeout(type,1000);}
+  else {setTimeout(type,200);}
+})();
+</script>
+
+</body>
+</html>
