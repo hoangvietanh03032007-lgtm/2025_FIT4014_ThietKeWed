@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchHub - Hệ Thống Tra Cứu Khoa Học</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Cấu hình Tailwind CSS cho màu sắc và font -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#003366', // Xanh Navy
+                        'accent-blue': '#00AAFF',  // Xanh Ngọc
+                        'text-default': '#333333',
+                        'bg-light': '#f8f9fa',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Đảm bảo chiều rộng nội dung tối đa */
+        .container-xl {
+            max-width: 1280px;
+        }
+        /* Cố định Sidebar và Header */
+        .sticky-sidebar {
+            position: sticky;
+            top: 24px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+        }
+        /* Style cho nút Tìm kiếm trên mobile (ẩn trên desktop) */
+        #mobile-filter-btn {
+            display: none;
+        }
+        /* Hiệu ứng giới hạn dòng tóm tắt */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* Media Query cho Mobile */
+        @media (max-width: 768px) {
+            #filter-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 80%;
+                height: 100%;
+                z-index: 20;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                display: block; /* Mặc định là block để transition hoạt động */
+            }
+            #filter-sidebar.open {
+                transform: translateX(0);
+            }
+            #mobile-filter-btn {
+                display: block;
+            }
+        }
+        /* Ẩn/Hiện Modal */
+        .modal {
+            display: none;
+        }
+        .modal.open {
+            display: flex;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+    </style>
+</head>
+
+<body class="bg-bg-light font-sans text-text-default">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent-blue mb-3"></div>
+            <p class="text-primary-dark font-semibold">Đang tra cứu...</p>
+        </div>
+    </div>
+    
+    <!-- Header (Tiêu đề) -->
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <div class="container-xl mx-auto flex justify-between items-center p-4 sm:px-6 lg:px-8">
+            <!-- Logo và Tên Website -->
+            <a href="#" onclick="event.preventDefault(); renderView('home-view')" class="flex items-center space-x-2">
+                <svg class="w-6 h-6 text-primary-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.467 9.559 5 8.25 5c-3.148 0-5.553 1.948-5.787 4.903a5.972 5.972 0 005.428 6.435L12 18l3.113-1.662a5.972 5.972 0 005.428-6.435C21.303 6.948 18.898 5 15.75 5c-1.309 0-2.582.467-3.75 1.253z"></path></svg>
+                <span class="text-xl font-bold text-primary-dark">ResearchHub</span>
+            </a>
+
+            <!-- Menu Điều hướng -->
+            <nav class="hidden md:block">
+                <a href="#" onclick="event.preventDefault(); renderView('home-view')" id="nav-home" class="text-gray-600 hover:text-accent-blue px-3 py-2 rounded-md transition duration-150">Trang Chủ</a>
+                <a href="#" onclick="event.preventDefault(); renderView('results-view')" id="nav-results" class="text-gray-600 hover:text-accent-blue px-3 py-2 rounded-md transition duration-150">Tra Cứu</a>
+                <a href="#" onclick="event.preventDefault(); renderView('about-view')" id="nav-about" class="text-gray-600 hover:text-accent-blue px-3 py-2 rounded-md transition duration-150">Giới Thiệu</a>
+                <a href="#" class="text-gray-600 hover:text-accent-blue px-3 py-2 rounded-md transition duration-150">Hỗ Trợ</a>
+            </nav>
+
+            <!-- Nút Hành động & Mobile Filter -->
+            <div class="flex items-center space-x-4">
+                <button id="mobile-filter-btn" class="p-2 md:hidden bg-accent-blue text-white rounded-full shadow-md hover:bg-opacity-90 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0012 14.586v4.708l4 2.5V21h-2v-2h-4v2h-2v-1.706l-4-2.5v-4.708a1 1 0 00-.293-.707L3.293 6.586A1 1 0 013 5.586V4z"></path></svg>
+                </button>
+                <button onclick="openModal('login-modal')" class="hidden md:block bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark/90 transition duration-150 shadow-md">
+                    Đăng Nhập
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT VIEWS (Client-Side Routing) -->
+    <main class="container-xl mx-auto p-4 sm:px-6 lg:px-8 mt-6">
+
+        <!-- 1. HOME VIEW (Search Landing Page) -->
+        <section id="home-view" class="h-[70vh] flex flex-col justify-center items-center p-8 text-center bg-white shadow-xl rounded-xl">
+            <h1 class="text-5xl font-extrabold text-primary-dark mb-4">ResearchHub</h1>
+            <p class="text-xl text-gray-600 mb-10">Kết nối tri thức, Khai phá nghiên cứu.</p>
+            
+            <div class="w-full max-w-3xl flex shadow-2xl rounded-xl overflow-hidden">
+                <input type="text" id="search-input" placeholder="Nhập từ khóa, tên tác giả, hoặc ISSN..." 
+                       class="flex-grow p-4 text-lg border-none focus:ring-accent-blue focus:border-accent-blue" onkeydown="if(event.key === 'Enter') performSearch()">
+                <button onclick="performSearch()" 
+                        class="bg-accent-blue text-white p-4 text-lg font-semibold hover:bg-opacity-90 transition flex items-center space-x-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span class="hidden sm:inline">Tìm Kiếm</span>
+                </button>
+            </div>
+            
+            <p class="text-sm text-gray-500 mt-4">Ví dụ: Deep Learning Tiếng Việt, Kinh tế vĩ mô 2024</p>
+    
+            <!-- Quick Access Categories -->
+            <div class="mt-12 flex flex-wrap justify-center gap-4 max-w-3xl">
+                <span class="px-4 py-2 bg-gray-200 text-primary-dark font-medium rounded-full cursor-pointer hover:bg-gray-300 transition" onclick="performSearch('Khoa học máy tính')">Khoa học máy tính</span>
+                <span class="px-4 py-2 bg-gray-200 text-primary-dark font-medium rounded-full cursor-pointer hover:bg-gray-300 transition" onclick="performSearch('Kinh tế & Quản lý')">Kinh tế & Quản lý</span>
+                <span class="px-4 py-2 bg-gray-200 text-primary-dark font-medium rounded-full cursor-pointer hover:bg-gray-300 transition" onclick="performSearch('Y học')">Y học</span>
+            </div>
+        </section>
+
+        <!-- 2. RESULTS VIEW (Current Content) -->
+        <section id="results-view" class="hidden">
+            <h1 class="text-2xl md:text-3xl font-bold text-primary-dark mb-4">Kết Quả Tra Cứu cho "<span id="search-query-display"></span>"</h1>
+            <p class="text-gray-500 mb-6" id="result-count"></p>
+
+            <!-- Bố cục chính: 2 Cột (Bộ lọc và Nội dung) -->
+            <div class="flex flex-col md:flex-row gap-6">
+
+                <!-- Cột 1: Bộ Lọc Nâng Cao (Filter Sidebar) -->
+                <aside id="filter-sidebar" class="md:w-1/4 bg-white p-6 rounded-xl shadow-lg md:sticky-sidebar">
+                    <h2 class="text-xl font-bold text-primary-dark mb-4 border-b pb-2">Bộ Lọc Nâng Cao</h2>
+
+                    <!-- Nhóm lọc 1: Loại Tài Liệu -->
+                    <div class="mb-5">
+                        <h3 class="font-semibold text-text-default mb-2 flex justify-between items-center cursor-pointer" onclick="toggleFilter(this)">
+                            Loại Tài Liệu
+                            <span class="text-gray-400 text-sm" data-icon>▲</span>
+                        </h3>
+                        <div class="space-y-2 filter-group">
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="type" value="Bài báo" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Bài báo Tạp chí</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="type" value="Luận văn" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Luận văn/Đề tài</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="type" value="Sách" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Sách chuyên khảo</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="type" value="Kỷ yếu" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Kỷ yếu Hội thảo</label>
+                        </div>
+                    </div>
+
+                    <!-- Nhóm lọc 2: Năm Xuất Bản -->
+                    <div class="mb-5">
+                        <h3 class="font-semibold text-text-default mb-2 flex justify-between items-center cursor-pointer" onclick="toggleFilter(this)">
+                            Năm Xuất Bản
+                            <span class="text-gray-400 text-sm" data-icon>▼</span>
+                        </h3>
+                        <div class="space-y-2 filter-group">
+                            <label class="flex items-center text-sm text-gray-600"><input type="radio" name="year_range" value="recent" class="filter-control rounded-full text-accent-blue focus:ring-accent-blue mr-2"> 2023 - 2025</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="radio" name="year_range" value="medium" class="filter-control rounded-full text-accent-blue focus:ring-accent-blue mr-2"> 2018 - 2022</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="radio" name="year_range" value="old" class="filter-control rounded-full text-accent-blue focus:ring-accent-blue mr-2"> Trước 2018</label>
+                            <div class="mt-2 flex space-x-2">
+                                <input type="number" id="year-from" placeholder="Từ năm" class="filter-control w-1/2 p-1 border rounded-md text-sm focus:border-accent-blue focus:ring-accent-blue">
+                                <input type="number" id="year-to" placeholder="Đến năm" class="filter-control w-1/2 p-1 border rounded-md text-sm focus:border-accent-blue focus:ring-accent-blue">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nhóm lọc 3: Lĩnh Vực -->
+                    <div class="mb-5">
+                        <h3 class="font-semibold text-text-default mb-2 flex justify-between items-center cursor-pointer" onclick="toggleFilter(this)">
+                            Lĩnh Vực
+                            <span class="text-gray-400 text-sm" data-icon>▼</span>
+                        </h3>
+                        <div class="space-y-2 filter-group">
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="field" value="Khoa học máy tính" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Khoa học Máy tính</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="field" value="Kinh tế" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Kinh tế & Quản lý</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="field" value="Y học" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Y học</label>
+                            <label class="flex items-center text-sm text-gray-600"><input type="checkbox" name="field" value="Kỹ thuật" class="filter-control rounded text-accent-blue focus:ring-accent-blue mr-2"> Kỹ thuật</label>
+                        </div>
+                    </div>
+
+                    <button class="w-full bg-accent-blue text-white font-semibold py-2 rounded-lg hover:bg-opacity-90 transition mt-4 shadow" onclick="applyFilters()">Áp Dụng Bộ Lọc</button>
+                    <button class="w-full bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-300 transition mt-2" onclick="clearFilters()">Xóa Bộ Lọc</button>
+                </aside>
+
+                <!-- Cột 2: Danh Sách Kết Quả -->
+                <section class="md:w-3/4 space-y-4">
+                    
+                    <!-- Thanh Sắp xếp -->
+                    <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                        <div class="text-sm text-gray-600">Sắp xếp theo:</div>
+                        <select id="sort-control" class="p-1 border rounded-md text-sm focus:ring-accent-blue focus:border-accent-blue" onchange="applyFilters()">
+                            <option value="relevance">Mức độ liên quan</option>
+                            <option value="newest">Mới nhất</option>
+                            <option value="oldest">Cũ nhất</option>
+                            <option value="citations">Trích dẫn nhiều nhất</option>
+                        </select>
+                    </div>
+
+                    <!-- Container sẽ chứa kết quả tra cứu được tạo động -->
+                    <div id="results-list" class="space-y-4">
+                        <!-- Kết quả sẽ được thêm vào đây bằng JavaScript -->
+                    </div>
+
+                    <!-- Phân Trang (Mock) -->
+                    <div class="flex justify-center items-center space-x-2 my-8">
+                        <button class="p-2 text-gray-500 hover:bg-gray-200 rounded-lg disabled:opacity-50" disabled>
+                            <span class="font-bold">«</span> Trước
+                        </button>
+                        <a href="#" class="px-4 py-2 bg-accent-blue text-white font-bold rounded-lg shadow-md">1</a>
+                        <a href="#" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition">2</a>
+                        <a href="#" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition">3</a>
+                        <span class="px-4 py-2">...</span>
+                        <a href="#" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition">15</a>
+                        <button class="p-2 text-gray-500 hover:bg-gray-200 rounded-lg">
+                            Sau <span class="font-bold">»</span>
+                        </button>
+                    </div>
+
+                </section>
+            </div>
+        </section>
+
+        <!-- 3. DETAIL VIEW (Trang Chi Tiết Tài Liệu) -->
+        <section id="detail-view" class="p-8 bg-white rounded-xl shadow-xl hidden">
+            <!-- Breadcrumb -->
+            <p class="text-sm text-gray-500 mb-4 cursor-pointer">
+                <span onclick="renderView('home-view')" class="hover:text-accent-blue">Trang Chủ</span> > 
+                <span onclick="renderView('results-view', currentQuery)" class="hover:text-accent-blue">Kết Quả Tra Cứu</span> > 
+                <span class="font-medium text-primary-dark" id="detail-title-small"></span>
+            </p>
+        
+            <h1 class="text-3xl md:text-4xl font-extrabold text-primary-dark mb-4" id="detail-title"></h1>
+            
+            <div class="flex flex-wrap items-center space-x-6 text-gray-600 mb-6 border-b pb-4">
+                <p>Tác giả: <span class="font-semibold text-text-default" id="detail-authors"></span></p>
+                <p>Năm: <span class="font-semibold text-text-default" id="detail-year"></span></p>
+                <p>Nguồn: <span class="font-semibold text-text-default italic" id="detail-source"></span></p>
+                <p>Trích dẫn: <span class="font-semibold text-text-default" id="detail-citations"></span></p>
+            </div>
+        
+            <div class="flex space-x-4 mb-8">
+                <button class="flex items-center space-x-2 px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-opacity-90 shadow-md transition" onclick="alert('Đã bắt đầu tải xuống file PDF (Mô phỏng).')">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Tải xuống PDF (Mock)</span>
+                </button>
+                <button onclick="openModal('citation-modal')" class="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-primary-dark rounded-lg hover:bg-gray-300 shadow-md transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2m-6 4H8m8 0H8"></path></svg>
+                    <span>Trích dẫn</span>
+                </button>
+                <button class="p-2 text-gray-500 hover:text-red-500 transition rounded-full hover:bg-gray-100" title="Lưu tài liệu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                </button>
+            </div>
+        
+            <!-- Tóm Tắt (Abstract) -->
+            <h2 class="text-2xl font-bold text-primary-dark mb-3 mt-6 border-b pb-2">Tóm Tắt (Abstract)</h2>
+            <p class="text-gray-800 leading-relaxed mb-6" id="detail-abstract"></p>
+        
+            <!-- Từ Khóa & Liên Quan -->
+            <h2 class="text-2xl font-bold text-primary-dark mb-3 mt-6 border-b pb-2">Từ Khóa</h2>
+            <div class="flex flex-wrap gap-2 mb-8" id="detail-keywords"></div>
+            
+            <!-- Tài liệu liên quan -->
+            <h2 class="text-2xl font-bold text-primary-dark mb-4 mt-6 border-b pb-2">Tài liệu liên quan</h2>
+            <ul class="space-y-3" id="detail-related">
+                <li class="border-b pb-2"><a href="#" class="text-lg text-accent-blue hover:underline">Phân tích cảm xúc dựa trên mạng nơ-ron hồi quy (RNN)</a></li>
+                <li class="border-b pb-2"><a href="#" class="text-lg text-accent-blue hover:underline">Khảo sát về các mô hình ngôn ngữ lớn (LLMs)</a></li>
+            </ul>
+        </section>
+
+        <!-- 4. ABOUT VIEW (Giới Thiệu) - NEW SECTION -->
+        <section id="about-view" class="p-8 bg-white rounded-xl shadow-xl hidden">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-primary-dark mb-6">Giới Thiệu về ResearchHub</h1>
+            <p class="text-xl text-gray-700 mb-6">Sứ mệnh của chúng tôi là kết nối tri thức khoa học và đơn giản hóa quy trình nghiên cứu.</p>
+            
+            <div class="space-y-6 text-gray-800">
+                <div>
+                    <h2 class="text-2xl font-bold text-primary-dark mb-2">Tầm nhìn</h2>
+                    <p>ResearchHub hướng đến trở thành cổng thông tin tra cứu tài liệu học thuật hàng đầu tại Việt Nam, nơi mọi sinh viên, giảng viên và nhà khoa học đều có thể tiếp cận nguồn tài liệu chính xác, cập nhật và có hệ thống.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-primary-dark mb-2">Giá trị cốt lõi</h2>
+                    <ul class="list-disc list-inside ml-4 space-y-1">
+                        <li>**Tính Chính xác:** Đảm bảo nguồn tài liệu được xác minh và đáng tin cậy.</li>
+                        <li>**Minh bạch:** Cung cấp thông tin trích dẫn và nguồn gốc rõ ràng.</li>
+                        <li>**Hiệu quả:** Tối ưu hóa tốc độ tìm kiếm và trải nghiệm người dùng.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-primary-dark mb-2">Đội ngũ phát triển</h2>
+                    <p>Dự án được thực hiện bởi nhóm sinh viên đam mê Công nghệ Thông tin và Nghiên cứu Khoa học, nhằm mục đích tạo ra một công cụ hỗ trợ cộng đồng học thuật Việt Nam.</p>
+                </div>
+            </div>
+            
+            <a href="#" onclick="event.preventDefault(); renderView('home-view')" class="mt-8 inline-block bg-accent-blue text-white font-semibold px-6 py-3 rounded-lg hover:bg-opacity-90 transition shadow-lg">Bắt đầu Tra Cứu Ngay</a>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-primary-dark text-white mt-10 p-8">
+        <div class="container-xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+                <h4 class="font-bold text-lg mb-3">ResearchHub</h4>
+                <p class="text-sm text-gray-400">Cổng thông tin tra cứu tài liệu khoa học hàng đầu.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-3">Liên Kết Nhanh</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" onclick="event.preventDefault(); renderView('home-view')" class="hover:text-accent-blue transition">Trang Chủ</a></li>
+                    <li><a href="#" onclick="event.preventDefault(); renderView('results-view')" class="hover:text-accent-blue transition">Tra Cứu</a></li>
+                    <li><a href="#" onclick="event.preventDefault(); renderView('about-view')" class="hover:text-accent-blue transition">Giới Thiệu</a></li>
+                    <li><a href="#" class="hover:text-accent-blue transition">Liên Hệ</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-3">Hỗ Trợ</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="hover:text-accent-blue transition">Hướng dẫn sử dụng</a></li>
+                    <li><a href="#" class="hover:text-accent-blue transition">Điều khoản dịch vụ</a></li>
+                    <li><a href="#" class="hover:text-accent-blue transition">Chính sách bảo mật</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-3">Theo Dõi</h4>
+                <!-- Placeholder cho Social Media Icons -->
+                <div class="flex space-x-3">
+                    <span class="text-gray-400 hover:text-accent-blue transition">Facebook</span>
+                    <span class="text-gray-400 hover:text-accent-blue transition">LinkedIn</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8 pt-4 border-t border-gray-700 text-center text-sm text-gray-500">
+            © 2025 ResearchHub. All rights reserved.
+        </div>
+    </footer>
+
+
+    <!-- MODAL 1: Đăng Nhập / Đăng Ký -->
+    <div id="login-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 relative">
+            <button onclick="closeModal('login-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-primary-dark mb-6">Đăng Nhập vào ResearchHub</h2>
+            <form class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:border-accent-blue focus:ring-accent-blue" placeholder="user@example.com">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Mật khẩu</label>
+                    <input type="password" id="password" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:border-accent-blue focus:ring-accent-blue" placeholder="********">
+                </div>
+                <button type="submit" class="w-full bg-accent-blue text-white font-semibold py-3 rounded-lg hover:bg-opacity-90 transition shadow-md" onclick="event.preventDefault(); alert('Chức năng đăng nhập đang được mô phỏng. Vui lòng nhấn OK.'); closeModal('login-modal');">Đăng Nhập</button>
+                <p class="text-center text-sm text-gray-500">
+                    Chưa có tài khoản? <a href="#" class="text-accent-blue hover:underline font-medium" onclick="event.preventDefault(); alert('Chuyển hướng đến trang Đăng ký (Mock).')">Đăng ký ngay</a>
+                </p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- MODAL 2: Trích Dẫn (Citation) -->
+    <div id="citation-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-8 relative">
+            <button onclick="closeModal('citation-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-primary-dark mb-6 border-b pb-2">Trích Dẫn Tài Liệu</h2>
+
+            <!-- Tab Navigation for Citation Styles -->
+            <div class="flex border-b mb-4">
+                <button class="tab-btn px-4 py-2 text-primary-dark font-medium border-b-2 border-accent-blue transition" data-style="apa">APA (7th ed.)</button>
+                <button class="tab-btn px-4 py-2 text-gray-500 hover:text-primary-dark transition" data-style="mla">MLA (9th ed.)</button>
+                <button class="tab-btn px-4 py-2 text-gray-500 hover:text-primary-dark transition" data-style="chicago">Chicago (17th ed.)</button>
+            </div>
+
+            <!-- Citation Content -->
+            <div id="citation-content">
+                <div class="citation-style apa p-4 bg-bg-light border rounded-lg mb-4">
+                    <p class="text-sm italic" id="citation-apa-content">...</p>
+                </div>
+                <div class="citation-style mla p-4 bg-bg-light border rounded-lg mb-4 hidden">
+                    <p class="text-sm italic" id="citation-mla-content">...</p>
+                </div>
+                <div class="citation-style chicago p-4 bg-bg-light border rounded-lg mb-4 hidden">
+                    <p class="text-sm italic" id="citation-chicago-content">...</p>
+                </div>
+            </div>
+
+            <button onclick="copyCitation()" class="px-4 py-2 bg-primary-dark text-white text-sm rounded-lg hover:bg-primary-dark/90 transition flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2"></path></svg>
+                <span>Sao chép vào Clipboard</span>
+            </button>
+            <p id="copy-message" class="text-sm text-green-600 mt-2 hidden">Đã sao chép!</p>
+        </div>
+    </div>
+
+
+    <!-- JavaScript cho tính năng tương tác (View Switching, Modals, Filter) -->
+    <script>
+        // MOCK DATA: Giả lập cơ sở dữ liệu
+        const mockDatabase = [
+            { id: 'doc-1', title: 'Ứng dụng Học Sâu (Deep Learning) trong Xử Lý Ngôn Ngữ Tự Nhiên Tiếng Việt', authors: 'Nguyễn Văn A, Trần Thị B', year: 2024, source: 'Tạp chí Khoa học & Công nghệ', abstract: 'Nghiên cứu này tập trung vào việc áp dụng các mô hình Deep Learning tiên tiến, đặc biệt là Transformer và BERT, để giải quyết các bài toán phức tạp trong Xử Lý Ngôn Ngữ Tự Nhiên (NLP) đối với ngôn ngữ Tiếng Việt, bao gồm nhận dạng thực thể có tên và tóm tắt văn bản.', citations: 45, type: 'Bài báo', field: 'Khoa học máy tính' },
+            { id: 'doc-2', title: 'Phân Tích Ảnh Hưởng Của Trí Tuệ Nhân Tạo Đến Thị Trường Lao Động Việt Nam', authors: 'Phạm Văn C', year: 2023, source: 'Luận văn Thạc sĩ Kinh tế', abstract: 'Luận văn đánh giá tác động của công nghệ Trí Tuệ Nhân Tạo lên cơ cấu ngành nghề và tỷ lệ thất nghiệp tại Việt Nam, đưa ra các khuyến nghị về chính sách đào tạo nguồn nhân lực thích ứng.', citations: 12, type: 'Luận văn', field: 'Kinh tế' },
+            { id: 'doc-3', title: 'Sách: Cơ sở dữ liệu và Trí tuệ Nhân tạo', authors: 'Hoàng Minh D', year: 2020, source: 'Nhà xuất bản Giáo dục', abstract: 'Cuốn sách cung cấp kiến thức nền tảng về cả hai lĩnh vực: cách quản lý dữ liệu lớn (Big Data) và các thuật toán AI cơ bản như học máy (Machine Learning) và mạng nơ-ron (Neural Networks).', citations: 68, type: 'Sách', field: 'Khoa học máy tính' },
+            { id: 'doc-4', title: 'Nghiên cứu về Công nghệ Blockchain và Tương lai ngành Tài chính', authors: 'Lê Thị E', year: 2025, source: 'Kỷ yếu Hội thảo Fintech', abstract: 'Phân tích cơ chế hoạt động của Blockchain và tiềm năng ứng dụng vào các hệ thống thanh toán và bảo mật tài chính tại khu vực Đông Nam Á.', citations: 5, type: 'Kỷ yếu', field: 'Kinh tế' },
+            { id: 'doc-5', title: 'Phương pháp chẩn đoán Ung thư da bằng hình ảnh sử dụng CNN', authors: 'Trần Văn F', year: 2024, source: 'Tạp chí Y học và Sức khỏe', abstract: 'Sử dụng mạng nơ-ron tích chập (CNN) để phân loại các loại tổn thương da, đạt độ chính xác cao trong việc phát hiện ung thư hắc tố (melanoma).', citations: 33, type: 'Bài báo', field: 'Y học' },
+            { id: 'doc-6', title: 'Tối ưu hóa quy trình sản xuất bằng robot công nghiệp và trí tuệ nhân tạo', authors: 'Nguyễn Văn G', year: 2017, source: 'Tạp chí Tự động hóa', abstract: 'Nghiên cứu về việc tích hợp AI để cải thiện hiệu suất của robot trong môi trường nhà máy, tập trung vào mô hình hóa động học ngược.', citations: 22, type: 'Bài báo', field: 'Kỹ thuật' },
+            { id: 'doc-7', title: 'Hệ thống gợi ý sản phẩm dựa trên thuật toán Collaborative Filtering', authors: 'Phan Thị H', year: 2021, source: 'Luận văn Kỹ thuật phần mềm', abstract: 'Xây dựng và đánh giá hiệu quả của hệ thống gợi ý sản phẩm cho sàn thương mại điện tử, sử dụng thuật toán lọc cộng tác (Collaborative Filtering).', citations: 18, type: 'Luận văn', field: 'Khoa học máy tính' },
+        ];
+
+        let currentQuery = '';
+        let currentResults = [];
+
+        // --- 1. View Switching (Client-Side Routing) ---
+        function renderView(viewId, documentId = null) {
+            document.querySelectorAll('main > section').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            closeMobileFilter();
+            closeModal('citation-modal');
+            closeModal('login-modal');
+
+            const view = document.getElementById(viewId);
+            if (view) {
+                view.classList.remove('hidden');
+                window.scrollTo(0, 0); 
+            }
+
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('font-semibold', 'text-accent-blue'));
+            document.getElementById('nav-' + viewId.split('-')[0])?.classList.add('font-semibold', 'text-accent-blue');
+
+            if (viewId === 'detail-view' && documentId) {
+                loadDocumentDetail(documentId);
+            }
+        }
+
+        // --- 2. Tìm kiếm (Search) ---
+        function performSearch(query = null) {
+            const searchInput = document.getElementById('search-input');
+            const newQuery = query || searchInput.value.trim();
+            currentQuery = newQuery;
+            
+            showLoading(true);
+
+            // Giả lập độ trễ tìm kiếm (Mock API call)
+            setTimeout(() => {
+                // 1. Lọc dữ liệu dựa trên từ khóa
+                const normalizedQuery = newQuery.toLowerCase();
+                let filteredData = mockDatabase.filter(doc => 
+                    doc.title.toLowerCase().includes(normalizedQuery) ||
+                    doc.abstract.toLowerCase().includes(normalizedQuery) ||
+                    doc.authors.toLowerCase().includes(normalizedQuery) ||
+                    doc.field.toLowerCase().includes(normalizedQuery)
+                );
+                
+                // 2. Lưu kết quả tìm kiếm cơ bản
+                currentResults = filteredData;
+                
+                // 3. Hiển thị kết quả và chuyển view
+                document.getElementById('search-query-display').textContent = newQuery || 'Tất cả';
+                renderView('results-view');
+                renderResults(currentResults);
+                showLoading(false);
+            }, 800);
+        }
+        
+        // --- 3. Render Kết Quả Tra Cứu ---
+        function renderResults(results) {
+            const resultsList = document.getElementById('results-list');
+            const resultCountDisplay = document.getElementById('result-count');
+            resultsList.innerHTML = ''; // Xóa kết quả cũ
+
+            if (results.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="bg-white p-10 rounded-xl shadow-lg text-center">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <h3 class="text-xl font-semibold text-primary-dark">Không tìm thấy tài liệu nào</h3>
+                        <p class="text-gray-600 mt-2">Vui lòng thử lại với từ khóa khác hoặc xóa bộ lọc.</p>
+                    </div>
+                `;
+                resultCountDisplay.textContent = 'Tìm thấy 0 tài liệu.';
+                return;
+            }
+
+            results.forEach(doc => {
+                const card = document.createElement('article');
+                card.className = `result-card bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-l-4 ${doc.type === 'Bài báo' ? 'border-accent-blue' : 'border-gray-400'}`;
+                
+                card.innerHTML = `
+                    <h2 class="text-xl font-bold text-primary-dark mb-2">
+                        <a href="#" onclick="event.preventDefault(); renderView('detail-view', '${doc.id}')" class="hover:text-accent-blue transition">${doc.title}</a>
+                    </h2>
+                    <p class="text-sm text-gray-600 mb-2">
+                        Tác giả: <span class="font-medium">${doc.authors}</span> | Nguồn: <span class="italic">${doc.source} (${doc.year})</span>
+                    </p>
+                    <p class="text-gray-700 text-base mb-4 line-clamp-3">${doc.abstract}</p>
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            Trích dẫn: ${doc.citations} lần | Thể loại: ${doc.type} | Lĩnh vực: ${doc.field}
+                        </div>
+                        <div class="space-x-2">
+                            <button class="p-2 text-gray-500 hover:text-red-500 transition rounded-full hover:bg-gray-100" title="Lưu lại">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                            </button>
+                            <a href="#" onclick="event.preventDefault(); renderView('detail-view', '${doc.id}')" class="bg-primary-dark text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-dark/90 transition shadow-md">
+                                Xem Chi Tiết
+                            </a>
+                        </div>
+                    </div>
+                `;
+                resultsList.appendChild(card);
+            });
+            resultCountDisplay.textContent = `Tìm thấy ${results.length} tài liệu.`;
+        }
+
+        // --- 4. Load Chi Tiết Tài Liệu ---
+        function loadDocumentDetail(documentId) {
+            const doc = mockDatabase.find(d => d.id === documentId);
+            if (!doc) return;
+
+            // Cập nhật thông tin Modal Trích dẫn
+            const citationAPA = `${doc.authors.replace(/, /g, ', & ').replace(/ & /, ' & ')}. (${doc.year}). ${doc.title}. ${doc.source}.`;
+            const citationMLA = `${doc.authors.replace(/, /g, ', and ')}. "${doc.title}." ${doc.source}, ${doc.year}.`;
+            const citationChicago = `${doc.authors.replace(/, /g, ', and ')}. ${doc.year}. "${doc.title}." ${doc.source}.`;
+
+            document.getElementById('citation-apa-content').textContent = citationAPA;
+            document.getElementById('citation-mla-content').textContent = citationMLA;
+            document.getElementById('citation-chicago-content').textContent = citationChicago;
+
+            // Cập nhật chi tiết trang
+            document.getElementById('detail-title').textContent = doc.title;
+            document.getElementById('detail-title-small').textContent = doc.title.substring(0, 30) + (doc.title.length > 30 ? '...' : '');
+            document.getElementById('detail-authors').textContent = doc.authors;
+            document.getElementById('detail-year').textContent = doc.year;
+            document.getElementById('detail-source').textContent = doc.source;
+            document.getElementById('detail-citations').textContent = doc.citations;
+            document.getElementById('detail-abstract').textContent = doc.abstract;
+
+            // Cập nhật Từ khóa
+            const keywordsContainer = document.getElementById('detail-keywords');
+            keywordsContainer.innerHTML = doc.keywords.map(k => `<span class="bg-gray-200 text-gray-700 text-sm px-3 py-1 rounded-full">${k}</span>`).join('');
+        }
+
+        // --- 5. Lọc và Sắp xếp ---
+        function applyFilters() {
+            showLoading(true);
+            setTimeout(() => {
+                let filtered = mockDatabase.filter(doc => {
+                    const normalizedQuery = currentQuery.toLowerCase();
+                    const matchesQuery = doc.title.toLowerCase().includes(normalizedQuery) ||
+                                         doc.abstract.toLowerCase().includes(normalizedQuery) ||
+                                         doc.authors.toLowerCase().includes(normalizedQuery);
+                    
+                    if (!matchesQuery) return false;
+
+                    // Lọc theo Loại Tài Liệu (Type)
+                    const selectedTypes = Array.from(document.querySelectorAll('input[name="type"]:checked')).map(cb => cb.value);
+                    if (selectedTypes.length > 0 && !selectedTypes.includes(doc.type)) return false;
+
+                    // Lọc theo Lĩnh Vực (Field)
+                    const selectedFields = Array.from(document.querySelectorAll('input[name="field"]:checked')).map(cb => cb.value);
+                    if (selectedFields.length > 0 && !selectedFields.includes(doc.field)) return false;
+
+                    // Lọc theo Năm (Year Range)
+                    const yearFrom = parseInt(document.getElementById('year-from').value);
+                    const yearTo = parseInt(document.getElementById('year-to').value);
+                    if ((yearFrom && doc.year < yearFrom) || (yearTo && doc.year > yearTo)) return false;
+                    
+                    // Lọc theo Year Radio (nếu có) - Cần đảm bảo logic phức tạp hơn nếu dùng cả radio và input
+                    
+                    return true;
+                });
+                
+                // Sắp xếp
+                const sortBy = document.getElementById('sort-control').value;
+                if (sortBy === 'newest') {
+                    filtered.sort((a, b) => b.year - a.year);
+                } else if (sortBy === 'oldest') {
+                    filtered.sort((a, b) => a.year - b.year);
+                } else if (sortBy === 'citations') {
+                    filtered.sort((a, b) => b.citations - a.citations);
+                }
+                // 'relevance' (mặc định) không cần sắp xếp thêm
+
+                currentResults = filtered;
+                renderResults(currentResults);
+                showLoading(false);
+            }, 500);
+        }
+
+        // --- 6. Xóa Bộ Lọc ---
+        function clearFilters() {
+            document.querySelectorAll('.filter-control').forEach(control => {
+                if (control.type === 'checkbox' || control.type === 'radio') {
+                    control.checked = false;
+                } else if (control.type === 'number') {
+                    control.value = '';
+                }
+            });
+            // Áp dụng lại tìm kiếm với bộ lọc trống
+            applyFilters();
+        }
+
+        // --- 7. Loading Indicator ---
+        function showLoading(show) {
+            document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+        }
+
+        // --- Các hàm Modal, Filter Sidebar và Accordion vẫn giữ nguyên ---
+        const sidebar = document.getElementById('filter-sidebar');
+        const mobileBtn = document.getElementById('mobile-filter-btn');
+        function closeMobileFilter() {
+             sidebar.classList.remove('open');
+             document.getElementById('sidebar-backdrop')?.remove();
+        }
+        mobileBtn.addEventListener('click', () => {
+            if (sidebar.classList.toggle('open')) {
+                const backdrop = document.createElement('div');
+                backdrop.id = 'sidebar-backdrop';
+                backdrop.className = 'fixed inset-0 bg-black opacity-50 z-10 md:hidden';
+                backdrop.addEventListener('click', closeMobileFilter);
+                document.body.appendChild(backdrop);
+            } else {
+                closeMobileFilter();
+            }
+        });
+        function toggleFilter(element) {
+            const group = element.nextElementSibling;
+            const icon = element.querySelector('[data-icon]');
+            if (group.style.maxHeight) {
+                group.style.maxHeight = null;
+                icon.textContent = '▼';
+            } else {
+                group.style.maxHeight = group.scrollHeight + "px";
+                icon.textContent = '▲';
+            }
+        }
+        function openModal(modalId) { document.getElementById(modalId).classList.add('open'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('open'); }
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('border-b-2', 'border-accent-blue', 'text-primary-dark');
+                    btn.classList.add('text-gray-500');
+                });
+                this.classList.add('border-b-2', 'border-accent-blue', 'text-primary-dark');
+                this.classList.remove('text-gray-500');
+                const style = this.getAttribute('data-style');
+                document.querySelectorAll('.citation-style').forEach(content => { content.classList.add('hidden'); });
+                document.querySelector(`.citation-style.${style}`).classList.remove('hidden');
+                document.getElementById('copy-message').classList.add('hidden');
+            });
+        });
+        function copyCitation() {
+            const activeCitation = document.querySelector('#citation-content .citation-style:not(.hidden) p');
+            const textToCopy = activeCitation.textContent;
+            const el = document.createElement('textarea');
+            el.value = textToCopy;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            const message = document.getElementById('copy-message');
+            message.classList.remove('hidden');
+            setTimeout(() => { message.classList.add('hidden'); }, 2000);
+        }
+
+        // --- 8. Initial Setup ---
+        window.onload = () => {
+            document.querySelectorAll('.filter-group').forEach(group => {
+                group.style.transition = 'max-height 0.3s ease-out';
+                group.style.overflow = 'hidden';
+                const header = group.parentElement.querySelector('h3');
+                
+                if (header.textContent.trim().includes('Loại Tài Liệu')) {
+                    group.style.maxHeight = group.scrollHeight + "px";
+                    header.querySelector('[data-icon]').textContent = '▲';
+                } else {
+                    group.style.maxHeight = null;
+                    header.querySelector('[data-icon]').textContent = '▼';
+                }
+            });
+            renderView('home-view');
+        };
+    </script>
+</body>
+</html>
