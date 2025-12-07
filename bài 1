@@ -1,11 +1,9 @@
-# Lưu các số nguyên 50 và 100 vào các biến
-so_thu_nhat = 50
-so_thu_hai = 100
-
-# Tính tổng của hai số và lưu vào biến total
-total = so_thu_nhat + so_thu_hai
-
-# Hiển thị kết quả (Tùy chọn, để kiểm tra)
-print(f"Số thứ nhất: {so_thu_nhat}")
-print(f"Số thứ hai: {so_thu_hai}")
-print(f"Tổng của hai số (total): {total}")
+// 1. Tổng của hai số
+#include <iostream>
+using namespace std;
+int main() {
+    int a = 50, b = 100;
+    int total = a + b;
+    cout << "Total = " << total << endl;
+    return 0;
+}
